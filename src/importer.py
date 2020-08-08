@@ -5,7 +5,7 @@ Imports a KDBX into another KDBX
 """
 
 import argparse
-import os
+import sys
 
 from pykeepass import pykeepass as kp
 
@@ -22,17 +22,13 @@ def parse_command_line(args: list):
         description=DESCRIPTION,
     )
     parser.add_argument(
-        'source-database',
-        dest='source_database',
-        nargs=1,
+        'source',
         metavar='SOURCE',
         help='The source database file',
         type=str
     )
     parser.add_argument(
-        'target-database',
-        dest='target_database',
-        nargs=1,
+        'target',
         metavar='TARGET',
         help='The target database file',
         type=str
@@ -49,6 +45,15 @@ def parse_command_line(args: list):
         dest='target_keyfile',
         help='The keyfile required to decrypt the target database',
         type=str,
+        required=False
+    )
+    parser.add_argument(
+        '-g', '--target-group',
+        dest='target_group',
+        help='Place all imports in this group in the target database '
+             '(defaults to the root group /)',
+        type=str,
+        default='/',
         required=False
     )
     return parser.parse_args(args)
@@ -83,11 +88,18 @@ def open_database(filename: str,
     :param keyfile:  An optional keyfile
     :return: A PyKeePass object
     """
-    return kp.PyKeePass(
-        filename,
-        password,
-        keyfile
-    )
+    try:
+        return kp.PyKeePass(
+            filename,
+            password,
+            keyfile
+        )
+    except kp.CredentialsError:
+        print('Cannot open database - invalid credentials given.')
+        sys.exit(-1)
+    except (kp.HeaderChecksumError, kp.PayloadChecksumError):
+        print('Checksum mismatch - database corrupt or missing keyfile')
+        sys.exit(-1)
 
 
 def close_database(database: kp.PyKeePass,
@@ -113,7 +125,11 @@ def import_entries(target_database: kp.PyKeePass,
                             entries to be imported
     """
     print(source_database.root_group)
-    print(target_database.root_group)
+    print(source_database.groups)
+    print(source_database.entries)
+    print(source_database.attachments)
+    print(source_database.root_group.subgroups)
+    print(source_database.root_group.entries)
 
 
 def read_password(prompt='Password: ') -> str:
@@ -131,7 +147,7 @@ def run(args: list) -> int:
     Runs the import
 
     :param args: The cli arguments
-    :return:     An exit code, EX_OK means success
+    :return:     An exit code: Anything but 0 will indicate some error
     """
     cli = parse_command_line(args)
     print(cli)
@@ -140,12 +156,12 @@ def run(args: list) -> int:
     target_password = read_password('Password for Target database: ')
 
     source_database = open_database(
-        cli.source_database,
+        cli.source,
         source_password,
-        cli.source_targetfile
+        cli.source_keyfile
     )
     target_database = open_database(
-        cli.target_database,
+        cli.target,
         target_password,
         cli.target_keyfile
     )
@@ -155,4 +171,4 @@ def run(args: list) -> int:
     close_database(target_database, True)
     close_database(source_database, False)
 
-    return os.EX_OK
+    return 0

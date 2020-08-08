@@ -1,0 +1,15 @@
+= README
+
+== Testdata
+
+|===
+| Database | Password | Description
+
+|source_kdbx_3_1.kdbx
+|```test1234```
+| Source Database
+
+|target_kdbx_3_1.kdbx
+|```test1234```
+| Target Database - must be restored after test run
+|===
