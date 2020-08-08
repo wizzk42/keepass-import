@@ -187,7 +187,8 @@ def _copy_groups_recursive(_target_database: kp.PyKeePass,
 
 
 def import_entries(target_database: kp.PyKeePass,
-                   source_database: kp.PyKeePass) -> None:
+                   source_database: kp.PyKeePass,
+                   **kwargs) -> None:
     """
     Imports entries from the source database into a target database
 
@@ -199,7 +200,7 @@ def import_entries(target_database: kp.PyKeePass,
     current_import_ts = calendar.timegm(time.gmtime())
     import_group = target_database.add_group(
         target_database.root_group,
-        f'__imported__{current_import_ts}'
+        f"{kwargs.get('target_group', '__imported__')}{current_import_ts}"
     )
 
     _copy_groups_recursive(
@@ -252,7 +253,7 @@ def run(args: list) -> int:
         cli.target_keyfile
     )
 
-    import_entries(target_database, source_database)
+    import_entries(target_database, source_database, target_group=cli.target_group)
 
     close_database(target_database, True)
     close_database(source_database, False)
