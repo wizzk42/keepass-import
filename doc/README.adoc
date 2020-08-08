@@ -1,15 +1,39 @@
 = README
 
+Just install the dependencies using pipenv and you are ready to go
+
 == Testdata
 
 |===
-| Database | Password | Description
-
+| *Database* | *Password* | *Description* | *Keyfile*
 |source_kdbx_3_1.kdbx
 |```test1234```
 | Source Database
+| -
 
 |target_kdbx_3_1.kdbx
 |```test1234```
 | Target Database - must be restored after test run
+| -
+
+|source_kdbx_3_1_w_key.kdbx
+|```test1234```
+| Source Database
+| source_kdbx_3_1.key
+
+|target_kdbx_3_1_w_key.kdbx
+|```test1234```
+| Target Database - must be restored after test run
+| target_kdbx_3_1.key
+
+|target_kdbx_3_1_other_pw.kdbx
+|```test4321```
+| Target Database - must be restored after test run
+| -
+
+|target_kdbx_3_1_w_key_other_pw.kdbx
+|```test4321```
+| Target Database - must be restored after test run
+| target_kdbx_3_1.key
+
 |===
