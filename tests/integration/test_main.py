@@ -1,86 +1,145 @@
+"""
+Integration Tests
+"""
+
 import subprocess
 import sys
 
 
 class MainIT:
+    """
+    Runs the program as some kind of blackbox test
+    """
+
     _CMD = ['python', 'src/main.py']
 
-    _TEST_DB_PASSWORD = 'test1234'.encode('UTF-8')
+    _TEST_DB_PASSWORD = 'test1234'
+    _TEST_DB_PASSWORD_OTHER = 'test4321'
 
     def test_import_kdbx31_pwonly(self):
         """
         Tests an import with two simple password databases
         """
-        _SOURCE_DATABASE_PATH = './tests/data/source_kdbx_3_1.kdbx'
-        _TARGET_DATABASE_PATH = './tests/data/target_kdbx_3_1.kdbx'
+        source = './tests/data/source_kdbx_3_1.kdbx'
+        target = './tests/data/target_kdbx_3_1.kdbx'
 
         additional_args = [
-            _SOURCE_DATABASE_PATH,
-            _TARGET_DATABASE_PATH
+            source,
+            target
         ]
 
-        return self._run_with_success(additional_args)
+        return self._run_with_success(
+            additional_args,
+            self._TEST_DB_PASSWORD,
+            self._TEST_DB_PASSWORD
+        )
+
+    def test_import_kdbx31_other_pwonly(self):
+        """
+        Tests an import with two simple password databases
+        """
+        source = './tests/data/source_kdbx_3_1.kdbx'
+        target = './tests/data/target_kdbx_3_1_other_pw.kdbx'
+
+        args = [
+            source,
+            target
+        ]
+
+        return self._run_with_success(
+            args,
+            self._TEST_DB_PASSWORD,
+            self._TEST_DB_PASSWORD_OTHER
+        )
 
     def test_import_kdbx31_keyfiles(self):
         """
         Tests an import with two password databases each
         protected by an additional keyfile
         """
-        _SOURCE_DATABASE_W_KEY_PATH = './tests/data/source_kdbx_3_1_w_key.kdbx'
-        _TARGET_DATABASE_W_KEY_PATH = './tests/data/target_kdbx_3_1_w_key.kdbx'
-        _SOURCE_DATABASE_KEY = './tests/data/source_kdbx_3_1.key'
-        _TARGET_DATABASE_KEY = './tests/data/target_kdbx_3_1.key'
+        source = './tests/data/source_kdbx_3_1_w_key.kdbx'
+        target = './tests/data/target_kdbx_3_1_w_key.kdbx'
+        source_key = './tests/data/source_kdbx_3_1.key'
+        target_key = './tests/data/target_kdbx_3_1.key'
 
-        additional_args = [
-            '-k', _SOURCE_DATABASE_KEY,
-            '-l', _TARGET_DATABASE_KEY,
-            _SOURCE_DATABASE_W_KEY_PATH,
-            _TARGET_DATABASE_W_KEY_PATH
+        args = [
+            '-k', source_key,
+            '-l', target_key,
+            source,
+            target
         ]
 
-        return self._run_with_success(additional_args)
+        return self._run_with_success(
+            args,
+            self._TEST_DB_PASSWORD,
+            self._TEST_DB_PASSWORD
+        )
 
-    def _run_with_success(self, additional_args: list):
+    def test_import_kdbx31_other_pw_keyfiles(self):
+        """
+        Tests an import with two password databases each
+        protected by an additional keyfile
+        """
+        source = './tests/data/source_kdbx_3_1_w_key.kdbx'
+        target = './tests/data/target_kdbx_3_1_w_key_other_pw.kdbx'
+        source_key = './tests/data/source_kdbx_3_1.key'
+        target_key = './tests/data/target_kdbx_3_1.key'
+
+        args = [
+            '-k', source_key,
+            '-l', target_key,
+            source,
+            target
+        ]
+
+        return self._run_with_success(
+            args,
+            self._TEST_DB_PASSWORD,
+            self._TEST_DB_PASSWORD_OTHER
+        )
+
+    def _run_with_success(self,
+                          args: list,
+                          srcpw,
+                          dstpw):
         """
         Runs a command in a shell. Assumes a successful execution
 
-        :param      additional_args: Additional args provided for
-                    the command
+        :param args:  Additional args provided for
+                      the command
+        :param srcpw: The password for the source keystore
+        :param dstpw: The password for the target keystore
         :raises:    Some exception if the underlying process returns
                     with exit <> 0
         """
-        cmd: list = self._CMD + additional_args
-        with subprocess.Popen(
-            cmd,
-            shell=False,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-        ) as p:
-            output = p.communicate(
-                input=self._TEST_DB_PASSWORD
-                      + '\n'.encode('UTF-8')
-                      + self._TEST_DB_PASSWORD
-                      + '\n'.encode('UTF-8')
+        cmd: list = self._CMD + args
+        with subprocess.Popen(cmd,
+                              shell=False,
+                              stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT) as process:
+            output = process.communicate(
+                input=f'{srcpw}\n{dstpw}\n'.encode('UTF-8')
             )
-            rc = p.returncode
-            if rc:
-                print(f'FAILURE %(rc)d')
+            ret = process.returncode
+            if ret:
+                print(f'FAILURE %(ret)d')
                 print('\t', output)
-            return rc
+            return ret
 
 
 if __name__ == '__main__':
-    failures = 0
+    FAILURES = 0
     it = MainIT()
     for key, value in MainIT.__dict__.items():
         if key.startswith('test_'):
+            print(f'Running test: {key}')
             test_func = getattr(it, key)
             try:
-                failures += test_func()
+                FAILURES += test_func()
             except Exception:
                 pass
-    if failures > 0:
-        print('TEST FAILURES ', failures)
+    if FAILURES > 0:
+        print('TEST FAILURES ', FAILURES)
         sys.exit(-1)
     print('ALL TESTS PASSED')
