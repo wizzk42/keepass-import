@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+"""
+main program
+"""
+
 import sys
 import importer
 
