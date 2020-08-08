@@ -5,7 +5,12 @@ Imports a KDBX into another KDBX
 """
 
 import argparse
+import calendar
+import logging
+import shutil
 import sys
+import time
+from typing import List
 
 from pykeepass import pykeepass as kp
 
@@ -56,30 +61,30 @@ def parse_command_line(args: list):
         default='/',
         required=False
     )
+    parser.add_argument(
+        '-b', '--backup',
+        dest='make_backup',
+        help='Backup the target database prior modification',
+        action='store_true',
+        required=False
+    )
     return parser.parse_args(args)
 
 
-def create_database(filename: str,
-                    password: str,
-                    keyfile: str or None = None):
+def backup(src: str):
     """
-    Creates a new KDBX database
-
-    :param filename: The database filename
-    :param password: The database password
-    :param keyfile:  An optional keyfile
-    :return: A PyKeePass object
+    Creates a backup from src filename to a generated destination
+    filename appended with a timestamp
+    :param src: source filename
     """
-    return kp.create_database(
-        filename,
-        password,
-        keyfile
-    )
+    current_timestamp = str(calendar.timegm(time.gmtime()))
+    dst = f"{src}.bak.{current_timestamp}"
+    shutil.copyfile(src, dst)
 
 
 def open_database(filename: str,
                   password: str,
-                  keyfile: str or None = None):
+                  keyfile: str or None = None) -> kp.PyKeePass:
     """
     Opens a KDBX database
 
@@ -115,21 +120,93 @@ def close_database(database: kp.PyKeePass,
     del database
 
 
+def _clone_entry(_target_database, _src_entry) -> kp.Entry:
+    """ Clones a single entry """
+    logging.debug(_src_entry)
+    return kp.Entry(
+        title=_src_entry.title if _src_entry.title else '',
+        username=_src_entry.username if _src_entry.username else '',
+        password=_src_entry.password if _src_entry.password else '',
+        url=_src_entry.url if _src_entry.url else '',
+        notes=_src_entry.notes if _src_entry.notes else '',
+        expiry_time=_src_entry.expiry_time if _src_entry.expiry_time else '',
+        tags=_src_entry.tags if _src_entry.tags else '',
+        icon=_src_entry.icon if _src_entry.icon else '',
+        kp=_target_database
+    )
+
+
+def _copy_entries_in_group(_target_database,
+                           _src_group) -> List[kp.Entry]:
+    """
+    Copies all entries in a specific group
+
+    :param _target_database: The target database representation
+    :param _src_group:       The source group
+    :return:                 A list of copied entries per group
+    """
+    return [
+        _clone_entry(
+            _target_database,
+            src_entry
+        ) for src_entry in _src_group.entries
+    ]
+
+
+def _copy_groups_recursive(_target_database: kp.PyKeePass,
+                           _src_group: kp.Group,
+                           _dst_parent: kp.Group) -> None:
+    """
+    Copies a group and all of its subgroups recursively
+    along with the entries per subgroup
+
+    :param _target_database:    The target database
+    :param _src_group:         The source parent group
+    :param _dst_parent:         The target parent group
+    :return:
+    """
+    dst_group = _target_database.add_group(
+        _dst_parent,
+        _src_group.name,
+        _src_group.icon,
+        _src_group.notes
+    )
+    if _src_group.subgroups:
+        for src_subgroup in _src_group.subgroups:
+            _copy_groups_recursive(
+                _target_database,
+                src_subgroup,
+                dst_group
+            )
+    if _src_group.entries:
+        entries = _copy_entries_in_group(
+            _target_database,
+            _src_group
+        )
+        dst_group.append(entries)
+
+
 def import_entries(target_database: kp.PyKeePass,
-                   source_database: kp.PyKeePass):
+                   source_database: kp.PyKeePass) -> None:
     """
     Imports entries from the source database into a target database
 
-    :param target_database: The target database where entries get imported
+    :param target_database: The target database where entries
+                            get imported
     :param source_database: The source database which provides
                             entries to be imported
     """
-    print(source_database.root_group)
-    print(source_database.groups)
-    print(source_database.entries)
-    print(source_database.attachments)
-    print(source_database.root_group.subgroups)
-    print(source_database.root_group.entries)
+    current_import_ts = calendar.timegm(time.gmtime())
+    import_group = target_database.add_group(
+        target_database.root_group,
+        f'__imported__{current_import_ts}'
+    )
+
+    _copy_groups_recursive(
+        target_database,
+        source_database.root_group,
+        import_group
+    )
 
 
 def read_password(prompt='Password: ') -> str:
@@ -142,6 +219,12 @@ def read_password(prompt='Password: ') -> str:
     return input(prompt)
 
 
+def configure_logging():
+    """ Initialize logging """
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+
 def run(args: list) -> int:
     """
     Runs the import
@@ -149,8 +232,11 @@ def run(args: list) -> int:
     :param args: The cli arguments
     :return:     An exit code: Anything but 0 will indicate some error
     """
+    configure_logging()
     cli = parse_command_line(args)
-    print(cli)
+
+    if cli.make_backup:
+        backup(cli.target)
 
     source_password = read_password('Password for Source database: ')
     target_password = read_password('Password for Target database: ')
