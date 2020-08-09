@@ -1,3 +1,7 @@
+"""
+UnitTest: open_database
+"""
+
 import unittest
 from unittest import mock
 
