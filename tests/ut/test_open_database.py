@@ -26,7 +26,11 @@ class TestOpenDatabase(unittest.TestCase):
             mock_keyfile
         )
 
-        mock_pykeepass.assert_called_once()
+        mock_pykeepass.assert_called_once_with(
+            mock_filename,
+            mock_password,
+            mock_keyfile
+        )
         self.assertEqual(result, 'test-object')
 
     def test_open_database_invalid_credentials(
@@ -45,7 +49,11 @@ class TestOpenDatabase(unittest.TestCase):
             mock_keyfile
         )
 
-        mock_pykeepass.assert_called_once()
+        mock_pykeepass.assert_called_once_with(
+            mock_filename,
+            mock_password,
+            mock_keyfile
+        )
 
     def test_open_database_invalid_header_checksum(
         self,
@@ -63,7 +71,11 @@ class TestOpenDatabase(unittest.TestCase):
             mock_keyfile
         )
 
-        mock_pykeepass.assert_called_once()
+        mock_pykeepass.assert_called_once_with(
+            mock_filename,
+            mock_password,
+            mock_keyfile
+        )
 
     def test_open_database_invalid_payload_checksum(
         self, mock_pykeepass: mock.MagicMock
@@ -79,7 +91,11 @@ class TestOpenDatabase(unittest.TestCase):
             mock_password,
             mock_keyfile)
 
-        mock_pykeepass.assert_called_once()
+        mock_pykeepass.assert_called_once_with(
+            mock_filename,
+            mock_password,
+            mock_keyfile
+        )
 
     @staticmethod
     def _init_mocks():
