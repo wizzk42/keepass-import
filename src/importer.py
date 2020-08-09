@@ -253,7 +253,11 @@ def run(args: list) -> int:
         cli.target_keyfile
     )
 
-    import_entries(target_database, source_database, target_group=cli.target_group)
+    import_entries(
+        target_database,
+        source_database,
+        target_group=cli.target_group
+    )
 
     close_database(target_database, True)
     close_database(source_database, False)

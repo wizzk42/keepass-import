@@ -123,7 +123,7 @@ class MainIT:
             )
             ret = process.returncode
             if ret:
-                print(f'FAILURE %(ret)d')
+                print(f'FAILURE %{ret}')
                 print('\t', output)
             return ret
 
