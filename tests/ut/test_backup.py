@@ -9,7 +9,7 @@ import importer
 
 
 @mock.patch('shutil.copyfile', autospec=True)
-class TestOpenDatabase(unittest.TestCase):
+class TestBackup(unittest.TestCase):
     """
     TestCase: open_database
     """
