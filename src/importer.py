@@ -10,6 +10,8 @@ import logging
 import shutil
 import sys
 import time
+
+from getpass import getpass
 from typing import List
 
 from pykeepass import pykeepass as kp
@@ -217,7 +219,7 @@ def read_password(prompt='Password: ') -> str:
     :param prompt: The prompt string presented to the user
     :return:       The data entered by the user
     """
-    return input(prompt)
+    return getpass(prompt)
 
 
 def configure_logging():
